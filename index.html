@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>腋下清爽小游戏</title>
+  <style>
+    :root {
+      --ink: #20242c;
+      --muted: #637083;
+      --paper: #fffdf8;
+      --line: #dcd5c9;
+      --mint: #48b792;
+      --mint-dark: #237c68;
+      --coral: #ee6f63;
+      --gold: #f4ba45;
+      --blue: #5d85d8;
+      --shadow: 0 18px 48px rgba(31, 36, 44, .15);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 12%, rgba(72, 183, 146, .18), transparent 30%),
+        radial-gradient(circle at 90% 8%, rgba(238, 111, 99, .14), transparent 26%),
+        linear-gradient(135deg, #fff7e8 0%, #edf8f5 52%, #f4f2ff 100%);
+    }
+
+    button, input { font: inherit; }
+
+    .app {
+      width: min(1180px, 100%);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: minmax(310px, 410px) minmax(320px, 1fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .panel, .game-shell {
+      border: 1px solid rgba(32, 36, 44, .12);
+      border-radius: 8px;
+      background: rgba(255, 253, 248, .9);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .panel {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: .95;
+      letter-spacing: 0;
+    }
+
+    .tagline, .brief {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .name-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .name-row input {
+      min-width: 0;
+      min-height: 46px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+      background: white;
+      outline: none;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      min-height: 78px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf1;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 1.45rem;
+      line-height: 1;
+    }
+
+    .meter-wrap { display: grid; gap: 8px; }
+
+    .meter-top {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .meter {
+      height: 16px;
+      border: 1px solid #bbc9bf;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--mint), var(--gold), var(--coral));
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sweet-zone {
+      position: absolute;
+      top: 0;
+      left: 28%;
+      width: 44%;
+      height: 100%;
+      background: rgba(255, 255, 255, .72);
+      border-inline: 2px solid rgba(32, 36, 44, .42);
+      z-index: 1;
+    }
+
+    .marker {
+      position: absolute;
+      top: -6px;
+      width: 8px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--ink);
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn {
+      min-height: 46px;
+      border: 0;
+      border-radius: 8px;
+      color: white;
+      background: var(--ink);
+      cursor: pointer;
+      transition: transform .12s ease, filter .12s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.06); }
+    .btn:active { transform: translateY(1px); }
+    .btn.secondary { color: var(--ink); background: #efe8dc; border: 1px solid var(--line); }
+    .btn.full { grid-column: 1 / -1; background: var(--mint-dark); }
+
+    .brief {
+      margin-top: auto;
+      padding: 14px;
+      border: 1px dashed #bbb0a2;
+      border-radius: 8px;
+      background: rgba(255,255,255,.58);
+    }
+
+    .game-shell {
+      min-height: 680px;
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+    }
+
+    .scene {
+      width: min(100%, 780px);
+      aspect-ratio: 16 / 10;
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #f9f3e8;
+      cursor: crosshair;
+    }
+
+    .base-art {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .pit-zone {
+      position: absolute;
+      width: 13%;
+      height: 17%;
+      border-radius: 50%;
+      z-index: 4;
+    }
+
+    .pit-zone.left {
+      left: 29%;
+      top: 55%;
+      transform: rotate(-20deg);
+    }
+
+    .pit-zone.right {
+      left: 55%;
+      top: 49%;
+      width: 12%;
+      height: 14%;
+      transform: rotate(17deg);
+    }
+
+    .hair {
+      position: absolute;
+      width: 5px;
+      height: 32px;
+      left: var(--x);
+      top: var(--y);
+      border: 0;
+      padding: 0;
+      border-radius: 8px 8px 2px 2px;
+      background: #2a211c;
+      transform: rotate(var(--r));
+      transform-origin: bottom center;
+      cursor: pointer;
+      transition: opacity .18s ease, transform .18s ease, background .18s ease;
+    }
+
+    .hair::before {
+      content: "";
+      position: absolute;
+      left: -13px;
+      bottom: -12px;
+      width: 31px;
+      height: 48px;
+      border-radius: 50%;
+    }
+
+    .hair.selected {
+      background: var(--coral);
+      transform: rotate(var(--r)) scale(1.22);
+    }
+
+    .hair.done {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-38px) rotate(var(--r)) scale(.15);
+    }
+
+    .tweezer {
+      position: absolute;
+      width: 140px;
+      height: 54px;
+      left: calc(var(--tx, 50) * 1%);
+      top: calc(var(--ty, 50) * 1%);
+      transform: translate(-50%, -50%) rotate(-16deg);
+      pointer-events: none;
+      transition: left .12s ease, top .12s ease;
+      filter: drop-shadow(0 10px 12px rgba(0,0,0,.18));
+      z-index: 8;
+    }
+
+    .tweezer::before, .tweezer::after {
+      content: "";
+      position: absolute;
+      right: 5px;
+      width: 112px;
+      height: 10px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #dde7ec, #788894);
+    }
+
+    .tweezer::before { top: 15px; transform: rotate(10deg); }
+    .tweezer::after { top: 29px; transform: rotate(-10deg); }
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      bottom: 24px;
+      max-width: min(560px, calc(100% - 32px));
+      transform: translateX(-50%);
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: white;
+      background: rgba(32, 36, 44, .88);
+      text-align: center;
+      opacity: 0;
+      transition: opacity .18s ease, transform .18s ease;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, -8px);
+    }
+
+    .confetti {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 18;
+    }
+
+    .piece {
+      position: absolute;
+      left: var(--x);
+      top: -18px;
+      width: 8px;
+      height: 14px;
+      border-radius: 2px;
+      background: var(--c);
+      transform: rotate(var(--r));
+      animation: fall var(--d) ease-out forwards;
+    }
+
+    @keyframes fall {
+      0% { opacity: 0; transform: translateY(0) rotate(var(--r)); }
+      10% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(420px) translateX(var(--drift)) rotate(520deg); }
+    }
+
+    .start-screen, .end-screen {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(255, 253, 248, .82);
+      z-index: 30;
+    }
+
+    .end-screen { display: none; }
+    .end-screen.active { display: grid; }
+    .start-screen.hidden { display: none; }
+
+    .dialog {
+      width: min(440px, 100%);
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .dialog h2 { margin: 0 0 10px; font-size: 2rem; }
+    .dialog p { margin: 0 0 18px; color: var(--muted); line-height: 1.7; }
+
+    @media (max-width: 860px) {
+      .app { grid-template-columns: 1fr; padding: 12px; }
+      .game-shell { min-height: auto; order: 1; }
+      .panel { order: 2; }
+      .scene { aspect-ratio: 1 / 1; }
+      .pit-zone.left { left: 25%; top: 52%; width: 16%; height: 18%; }
+      .pit-zone.right { left: 61%; top: 50%; width: 14%; height: 16%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel" aria-label="游戏信息">
+      <div>
+        <h1>腋下清爽小游戏</h1>
+        <p class="tagline">输入朋友名字，开始一场卡通版清爽护理挑战。现在直接点击屏幕上的毛发就会拔除，并伴随夸张惨叫音效。</p>
+      </div>
+
+      <div class="name-row">
+        <input id="nameInput" maxlength="12" placeholder="朋友名字" value="何泽裕" autocomplete="off">
+        <button class="btn" id="startBtn">开始</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span>剩余毛发</span><strong id="leftCount">12</strong></div>
+        <div class="stat"><span>舒适度</span><strong id="comfort">100</strong></div>
+        <div class="stat"><span>得分</span><strong id="score">0</strong></div>
+      </div>
+
+      <div class="meter-wrap">
+        <div class="meter-top">
+          <span>力度槽</span>
+          <span>白色区域最佳</span>
+        </div>
+        <div class="meter" aria-hidden="true">
+          <div class="sweet-zone"></div>
+          <div class="marker" id="marker"></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn full" id="pluckBtn">拔最近一根</button>
+        <button class="btn secondary" id="leftBtn">切左腋</button>
+        <button class="btn secondary" id="rightBtn">切右腋</button>
+        <button class="btn secondary full" id="restartBtn">重新开始</button>
+      </div>
+
+      <div class="brief">
+        玩法改成更直接的点击交互：点毛发，镊子移动过去，立刻播放惨叫、撒花并弹出祝贺文案。力度槽仍决定得分和舒适度。
+      </div>
+    </section>
+
+    <section class="game-shell" aria-label="游戏区域">
+      <div class="scene" id="scene">
+        <img class="base-art" src="cartoon-armpit-bg.png" alt="举手露出光滑腋下的卡通人物">
+        <div class="pit-zone left" id="pitLeft"></div>
+        <div class="pit-zone right" id="pitRight"></div>
+        <div class="tweezer" id="tweezer"></div>
+        <div class="confetti" id="confetti"></div>
+      </div>
+      <div class="toast" id="toast">请输入名字后开始</div>
+      <div class="start-screen" id="startScreen">
+        <div class="dialog">
+          <h2>先登记朋友</h2>
+          <p>输入名字后开始护理挑战，点击屏幕上的毛发就能拔除。</p>
+          <button class="btn full" id="startOverlayBtn">开始游戏</button>
+        </div>
+      </div>
+      <div class="end-screen" id="endScreen">
+        <div class="dialog">
+          <h2 id="resultTitle">清爽完成</h2>
+          <p id="resultText">您帮何泽裕变得很清爽</p>
+          <button class="btn full" id="againBtn">再来一局</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const hairLayout = [
+      ["left", 36, 36, -18], ["left", 47, 42, 8], ["left", 58, 34, 22],
+      ["left", 40, 56, -24], ["left", 53, 58, 12], ["left", 65, 50, -12],
+      ["right", 34, 38, 18], ["right", 45, 44, -12], ["right", 56, 35, 8],
+      ["right", 38, 58, 16], ["right", 52, 60, -10], ["right", 64, 51, 24]
+    ];
+
+    const state = {
+      activeSide: "left",
+      playerName: "何泽裕",
+      score: 0,
+      comfort: 100,
+      remaining: hairLayout.length,
+      force: 0,
+      direction: 1,
+      running: false,
+      audioContext: null
+    };
+
+    const scene = document.querySelector("#scene");
+    const pits = { left: document.querySelector("#pitLeft"), right: document.querySelector("#pitRight") };
+    const marker = document.querySelector("#marker");
+    const tweezer = document.querySelector("#tweezer");
+    const toast = document.querySelector("#toast");
+    const leftCount = document.querySelector("#leftCount");
+    const comfort = document.querySelector("#comfort");
+    const score = document.querySelector("#score");
+    const nameInput = document.querySelector("#nameInput");
+    const startScreen = document.querySelector("#startScreen");
+    const endScreen = document.querySelector("#endScreen");
+    const resultTitle = document.querySelector("#resultTitle");
+    const resultText = document.querySelector("#resultText");
+    const confetti = document.querySelector("#confetti");
+
+    function cleanName() {
+      const value = nameInput.value.trim();
+      return value || "何泽裕";
+    }
+
+    function createHairs() {
+      document.querySelectorAll(".hair").forEach((node) => node.remove());
+      hairLayout.forEach(([side, x, y, r], index) => {
+        const hair = document.createElement("button");
+        hair.className = "hair";
+        hair.type = "button";
+        hair.dataset.index = index;
+        hair.dataset.side = side;
+        hair.style.setProperty("--x", `${x}%`);
+        hair.style.setProperty("--y", `${y}%`);
+        hair.style.setProperty("--r", `${r}deg`);
+        hair.setAttribute("aria-label", `${side === "left" ? "左" : "右"}腋毛发 ${index + 1}`);
+        hair.addEventListener("click", (event) => {
+          event.stopPropagation();
+          pluckHair(hair);
+        });
+        pits[side].appendChild(hair);
+      });
+    }
+
+    function moveTweezerTo(hair) {
+      const hairBox = hair.getBoundingClientRect();
+      const sceneBox = scene.getBoundingClientRect();
+      const x = ((hairBox.left + hairBox.width / 2 - sceneBox.left) / sceneBox.width) * 100;
+      const y = ((hairBox.top + hairBox.height / 2 - sceneBox.top) / sceneBox.height) * 100;
+      tweezer.style.setProperty("--tx", x);
+      tweezer.style.setProperty("--ty", y);
+    }
+
+    function findNearestHair(event) {
+      const hairs = [...document.querySelectorAll(".hair:not(.done)")];
+      let best = null;
+      let bestDistance = Infinity;
+      hairs.forEach((hair) => {
+        const box = hair.getBoundingClientRect();
+        const x = box.left + box.width / 2;
+        const y = box.top + box.height / 2;
+        const distance = Math.hypot(event.clientX - x, event.clientY - y);
+        if (distance < bestDistance) {
+          best = hair;
+          bestDistance = distance;
+        }
+      });
+      return bestDistance < 150 ? best : null;
+    }
+
+    function switchSide(side) {
+      if (!state.running) return;
+      const next = [...document.querySelectorAll(`.hair[data-side="${side}"]:not(.done)`)][0];
+      if (next) {
+        state.activeSide = side;
+        moveTweezerTo(next);
+        showToast(side === "left" ? "已切到左腋，点击毛发拔除" : "已切到右腋，点击毛发拔除");
+      } else {
+        showToast("这一侧已经很清爽");
+      }
+    }
+
+    function initAudio() {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return null;
+      if (!state.audioContext) state.audioContext = new AudioContext();
+      if (state.audioContext.state === "suspended") state.audioContext.resume();
+      return state.audioContext;
+    }
+
+    function playScream(intense = false) {
+      const ctx = initAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const vibrato = ctx.createOscillator();
+      const vibratoGain = ctx.createGain();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(intense ? 780 : 620, now);
+      osc.frequency.exponentialRampToValueAtTime(intense ? 420 : 360, now + .23);
+      vibrato.type = "sine";
+      vibrato.frequency.setValueAtTime(19, now);
+      vibratoGain.gain.setValueAtTime(intense ? 85 : 60, now);
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(intense ? 1250 : 980, now);
+      filter.Q.setValueAtTime(8, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(intense ? .22 : .16, now + .03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + .34);
+
+      vibrato.connect(vibratoGain);
+      vibratoGain.connect(osc.frequency);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      vibrato.start(now);
+      osc.stop(now + .36);
+      vibrato.stop(now + .36);
+    }
+
+    function getForceFeedback() {
+      if (state.force < 18) {
+        return {
+          success: false,
+          intense: false,
+          score: -8,
+          comfort: -1,
+          text: `轻到像挠痒，${state.playerName}甚至有点放松`
+        };
+      }
+      if (state.force < 28) {
+        return {
+          success: true,
+          intense: false,
+          score: 55,
+          comfort: 1,
+          text: `温柔拔除，${state.playerName}舒适度小涨`
+        };
+      }
+      if (state.force <= 72) {
+        return {
+          success: true,
+          intense: false,
+          score: 130,
+          comfort: 0,
+          text: `恭喜帮${state.playerName}拔出腋毛，力度刚刚好`
+        };
+      }
+      if (state.force <= 86) {
+        return {
+          success: true,
+          intense: true,
+          score: 80,
+          comfort: -6,
+          text: `拔出来了，但${state.playerName}发出一声灵魂惨叫`
+        };
+      }
+      return {
+        success: true,
+        intense: true,
+        score: 40,
+        comfort: -12,
+        text: `太狠了！${state.playerName}清爽了，也沉默了`
+      };
+    }
+
+    function pluckHair(hair) {
+      if (!state.running) {
+        showToast("先输入名字并开始游戏");
+        return;
+      }
+      if (!hair || hair.classList.contains("done")) {
+        showToast("点腋下的毛发就能拔除");
+        return;
+      }
+
+      moveTweezerTo(hair);
+      hair.classList.add("selected");
+
+      const feedback = getForceFeedback();
+
+      playScream(feedback.intense);
+
+      if (feedback.success) {
+        hair.classList.add("done");
+        hair.classList.remove("selected");
+        state.activeSide = hair.dataset.side;
+        state.remaining -= 1;
+        state.score += feedback.score;
+        state.comfort = Math.min(100, state.comfort + feedback.comfort);
+        showToast(feedback.text);
+        burstConfetti(feedback.intense ? 16 : 30);
+      } else {
+        setTimeout(() => hair.classList.remove("selected"), 180);
+        state.score = Math.max(0, state.score + feedback.score);
+        state.comfort = Math.min(100, state.comfort + feedback.comfort);
+        showToast(feedback.text);
+      }
+
+      updateHud();
+      checkEnd();
+    }
+
+    function pluckNearest(event) {
+      if (event.target.closest(".start-screen, .end-screen")) return;
+      pluckHair(findNearestHair(event));
+    }
+
+    function burstConfetti(amount = 28) {
+      const colors = ["#48b792", "#ee6f63", "#f4ba45", "#5d85d8", "#9a7bd8"];
+      for (let i = 0; i < amount; i += 1) {
+        const piece = document.createElement("i");
+        piece.className = "piece";
+        piece.style.setProperty("--x", `${20 + Math.random() * 60}%`);
+        piece.style.setProperty("--c", colors[i % colors.length]);
+        piece.style.setProperty("--r", `${Math.random() * 180}deg`);
+        piece.style.setProperty("--d", `${650 + Math.random() * 520}ms`);
+        piece.style.setProperty("--drift", `${-90 + Math.random() * 180}px`);
+        confetti.appendChild(piece);
+        setTimeout(() => piece.remove(), 1300);
+      }
+    }
+
+    function updateHud() {
+      leftCount.textContent = state.remaining;
+      comfort.textContent = Math.max(0, state.comfort);
+      score.textContent = state.score;
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 1500);
+    }
+
+    function checkEnd() {
+      if (state.remaining > 0 && state.comfort > 0) return;
+      state.running = false;
+      endScreen.classList.add("active");
+      if (state.remaining === 0) {
+        resultTitle.textContent = "清爽完成";
+        resultText.textContent = `您帮${state.playerName}变得很清爽`;
+        burstConfetti();
+        setTimeout(burstConfetti, 220);
+      } else {
+        resultTitle.textContent = "护理暂停";
+        resultText.textContent = `${state.playerName}的舒适度见底了，休息一下再继续。`;
+      }
+    }
+
+    function startGame() {
+      state.playerName = cleanName();
+      state.running = true;
+      initAudio();
+      startScreen.classList.add("hidden");
+      endScreen.classList.remove("active");
+      showToast(`开始帮${state.playerName}做腋下管理，点击毛发即可拔除`);
+    }
+
+    function restart() {
+      state.activeSide = "left";
+      state.playerName = cleanName();
+      state.score = 0;
+      state.comfort = 100;
+      state.remaining = hairLayout.length;
+      state.force = 0;
+      state.direction = 1;
+      state.running = true;
+      initAudio();
+      startScreen.classList.add("hidden");
+      endScreen.classList.remove("active");
+      createHairs();
+      updateHud();
+      showToast(`重新开始帮${state.playerName}清爽一下`);
+    }
+
+    function animate() {
+      state.force += state.direction * 1.15;
+      if (state.force >= 100) {
+        state.force = 100;
+        state.direction = -1;
+      }
+      if (state.force <= 0) {
+        state.force = 0;
+        state.direction = 1;
+      }
+      marker.style.left = `${state.force}%`;
+      requestAnimationFrame(animate);
+    }
+
+    document.querySelector("#pluckBtn").addEventListener("click", () => {
+      const next = [...document.querySelectorAll(".hair:not(.done)")][0];
+      pluckHair(next);
+    });
+    document.querySelector("#leftBtn").addEventListener("click", () => switchSide("left"));
+    document.querySelector("#rightBtn").addEventListener("click", () => switchSide("right"));
+    document.querySelector("#restartBtn").addEventListener("click", restart);
+    document.querySelector("#againBtn").addEventListener("click", restart);
+    document.querySelector("#startBtn").addEventListener("click", startGame);
+    document.querySelector("#startOverlayBtn").addEventListener("click", startGame);
+    scene.addEventListener("click", pluckNearest);
+    nameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") startGame();
+    });
+
+    createHairs();
+    updateHud();
+    animate();
+  </script>
+</body>
+</html>
